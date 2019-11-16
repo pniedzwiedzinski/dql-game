@@ -1,6 +1,9 @@
 import random
-import numpy as np
+import os
 from collections import deque
+
+import numpy as np
+import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
@@ -37,6 +40,13 @@ class DQLSolver:
         self.model.add(Dense(output_shape, activation="linear"))
         self.model.compile(loss="mse", optimizer=Adam(lr=learning_rate))
 
+    def callback(self):
+        checkpoint_path = "training/cp.pkt"
+        checkpoint_dir = os.path.dirname(checkpoint_path)
+        return tf.keras.callbacks.ModelCheckpoint(
+            filepath=checkpoint_path, save_weights_only=True, verbose=1
+        )
+
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
 
@@ -59,6 +69,6 @@ class DQLSolver:
                 q_update = reward + GAMMA * np.amax(self.model.predict(state_next)[0])
             q_values = self.model.predict(state)
             q_values[0][action] = q_update
-            self.model.fit(state, q_values, verbose=0)
+            self.model.fit(state, q_values, verbose=0, callbacks=[self.callback()])
         self.exploration_rate *= self.EXPLORATION_DECAY
         self.exploration_rate = max(self.EXPLORATION_MIN, self.exploration_rate)

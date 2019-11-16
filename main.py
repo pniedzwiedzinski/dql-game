@@ -88,7 +88,9 @@ def reward(prev_state, next_state, score_delta):
 def play_game():
     driver, _ = get_game()
     top_score = 0
+    run = 0
     for _ in range(100):
+        run += 1
         driver.refresh()
         sleep(2)
         body = driver.find_element_by_tag_name("body")
@@ -121,9 +123,13 @@ def play_game():
 
         top_score = max([top_score, last_score])
         print("-------------------")
+        print("RUN: " + str(run))
+        print("SCORE: " + str(last_score))
+        print("EXPLORATION_RATE: " + str(model.exploration_rate))
         print("TOP SCORE: " + str(top_score))
         print("-------------------")
         model.experience_replay()
+    model.model.save_weights('model.ckpt')
 
 
 play_game()
