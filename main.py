@@ -1,14 +1,13 @@
 import random
-import csv
-import numpy as np
-import tensorflow as tf
+import os
 from time import sleep
 from math import sqrt
+
+import numpy as np
+
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.optimizers import Adam
+from selenium.webdriver.chrome.options import Options
 
 from dql import DQLSolver
 
@@ -42,7 +41,16 @@ def get_state(driver):
 
 
 def get_game():
-    driver = webdriver.Chrome(executable_path="./chromedriver")
+    if "headless" in os.environ.keys():
+        options = Options()
+        options.add_argument("--headless")
+        # options.add_argument("--disable-gpu")
+        # options.add_argument("--disable-software-rasterizer")
+        # options.add_argument("--disable-dev-shm-usage")
+        # options.add_argument("--no-sandbox")
+        driver = webdriver.Chrome(executable_path="./chromedriver", options=options)
+    else:
+        driver = webdriver.Chrome(executable_path="./chromedriver")
     driver.get(game_url)
     sleep(2)
     body = driver.find_element_by_tag_name("body")
@@ -74,7 +82,7 @@ def reward(prev_state, next_state, score_delta):
         return 30000
     d_a = distance_to_cherry(prev_state)
     d_b = distance_to_cherry(next_state)
-    return  np.mean(np.array([d_a, d_b])) * (d_a - d_b) / 1000
+    return np.mean(np.array([d_a, d_b])) * (d_a - d_b) / 1000
 
 
 def play_game():
