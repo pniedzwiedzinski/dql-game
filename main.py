@@ -125,10 +125,11 @@ def reward(prev_state: "np.array", next_state: "np.array", score_delta: int) -> 
         - score_delta: int - difference of score between `next_state` and `prev_state`
     """
     if score_delta > 0:
-        return 30000
+        return 3000
     d_a = distance_to_cherry(prev_state)
     d_b = distance_to_cherry(next_state)
-    return np.mean(np.array([d_a, d_b])) * (d_a - d_b) / 1000
+    # return np.mean(np.array([d_a, d_b])) * (d_a - d_b) / 1000
+    return -d_b
 
 
 def print_training_info(
@@ -207,15 +208,23 @@ def play_game():
     """
     This function loads model from `model.ckpt` and runs the game.
     """
-    driver, _ = get_game()
+    driver = get_game()
     model = build_model(6, 3)
     model.exploration_rate = 0.0
     model.model.load_weights("model.ckpt")
     body = driver.find_element_by_tag_name("body")
+    last_score = 0
     while True:
         state = get_state(driver)
         output = model.act(state)
         apply_action(output, body)
+        new_score = get_score(driver)
+        next_state = get_state(driver)
+
+        score_delta = new_score - last_score
+        r = reward(state[0], next_state[0], score_delta)
+        print(r)
+        last_score = new_score
 
 
 explore_game()
