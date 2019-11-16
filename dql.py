@@ -44,7 +44,7 @@ class DQLSolver:
         checkpoint_path = "training/cp.pkt"
         checkpoint_dir = os.path.dirname(checkpoint_path)
         return tf.keras.callbacks.ModelCheckpoint(
-            filepath=checkpoint_path, save_weights_only=True, verbose=1
+            filepath=checkpoint_path, save_weights_only=True
         )
 
     def remember(self, state, action, reward, next_state, done):
@@ -56,7 +56,6 @@ class DQLSolver:
             return random.randrange(self.output_shape)
         print("m")
         q_values = self.model.predict(state)
-        print(q_values)
         return np.argmax(q_values[0])
 
     def experience_replay(self):

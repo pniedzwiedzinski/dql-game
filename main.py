@@ -85,8 +85,9 @@ def reward(prev_state, next_state, score_delta):
     return np.mean(np.array([d_a, d_b])) * (d_a - d_b) / 1000
 
 
-def play_game():
+def explore_game():
     driver, _ = get_game()
+    model = build_model(6, 3)
     top_score = 0
     run = 0
     for _ in range(100):
@@ -94,7 +95,6 @@ def play_game():
         driver.refresh()
         sleep(2)
         body = driver.find_element_by_tag_name("body")
-        model = build_model(6, 3)
 
         current_cherry = 0
         last_score = 0
@@ -131,5 +131,15 @@ def play_game():
         model.experience_replay()
     model.model.save_weights('model.ckpt')
 
+def play_game():
+    driver, _ = get_game()
+    model = build_model(6, 3)
+    model.exploration_rate = 0.0
+    model.model.load_weights('model.ckpt')
+    body = driver.find_element_by_tag_name("body")
+    while True:
+        state = get_state(driver)
+        output = model.act(state)
+        send_keys(output, body)
 
-play_game()
+explore_game()
