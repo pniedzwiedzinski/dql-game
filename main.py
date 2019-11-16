@@ -125,11 +125,11 @@ def reward(prev_state: "np.array", next_state: "np.array", score_delta: int) -> 
         - score_delta: int - difference of score between `next_state` and `prev_state`
     """
     if score_delta > 0:
-        return 3000
+        return 10
     d_a = distance_to_cherry(prev_state)
     d_b = distance_to_cherry(next_state)
     # return np.mean(np.array([d_a, d_b])) * (d_a - d_b) / 1000
-    return -d_b
+    return abs(next_state[4])/100 + abs(next_state[5])/100
 
 
 def print_training_info(
