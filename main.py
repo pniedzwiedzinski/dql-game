@@ -16,15 +16,35 @@ game_url = "https://webassembly-game.netlify.com/"
 ACTIONS = {0: Keys.SPACE, 1: Keys.ARROW_LEFT, 2: Keys.ARROW_RIGHT}
 
 
-def build_model(input_size, output_size):
+def build_model(input_size: int, output_size: int) -> object:
+    """
+    This function initializes the DQL model.
+
+    Parameters:
+        - input_size: int - size of input vector
+        - output_size: int - size of output vector
+    """
     return DQLSolver(input_size, output_size)
 
 
-def send_keys(decision, body):
+def apply_action(decision: int, body: object) -> None:
+    """
+    This function applies the action to the game window (body).
+
+    Parameters:
+        - decision: int - index of action from `ACTIONS`
+        - body: object - body element of the game
+    """
     body.send_keys(ACTIONS[decision])
 
 
-def get_state(driver):
+def get_state(driver: "webdriver") -> "np.array":
+    """
+    This function fetch data from the game and parse it to a vector.
+
+    Parameters:
+        - driver: webdriver - selenium webdriver object
+    """
     response = driver.execute_script(
         """
         return {
@@ -40,24 +60,29 @@ def get_state(driver):
     return np.array([list(response.values())]).astype("float32")
 
 
-def get_game():
+def get_game() -> "webdriver":
+    """
+    This function initialize selenium webdriver and load game site.
+    """
+
+    options = Options()
     if "headless" in os.environ.keys():
-        options = Options()
         options.add_argument("--headless")
-        # options.add_argument("--disable-gpu")
-        # options.add_argument("--disable-software-rasterizer")
-        # options.add_argument("--disable-dev-shm-usage")
-        # options.add_argument("--no-sandbox")
-        driver = webdriver.Chrome(executable_path="./chromedriver", options=options)
-    else:
-        driver = webdriver.Chrome(executable_path="./chromedriver")
+
+    driver = webdriver.Chrome(executable_path="./chromedriver", options=options)
     driver.get(game_url)
     sleep(2)
-    body = driver.find_element_by_tag_name("body")
-    return driver, body
+    return driver
 
 
-def get_max_cherry(driver):
+def get_highest_possible_score(driver: "webdriver") -> int:
+    """
+    This function highest possible score.
+
+    Parameters:
+        - driver: webdriver - selenium webdriver object
+    """
+
     return driver.execute_script(
         """
         return _get_highest_possible_score();
@@ -65,7 +90,14 @@ def get_max_cherry(driver):
     )
 
 
-def get_score(driver):
+def get_score(driver: "webdriver") -> int:
+    """
+    This function returns current score.
+
+    Parameters:
+        - driver: webdriver - selenium webdriver object
+    """
+
     return driver.execute_script(
         """
         return _get_score();
@@ -73,11 +105,25 @@ def get_score(driver):
     )
 
 
-def distance_to_cherry(state):
+def distance_to_cherry(state: "np.array") -> float:
+    """
+    This function returns distance from player to cherry.
+
+    Parameters:
+        - state: np.array - state array (of shape (6,))
+    """
     return sqrt((state[0] - state[2]) ** 2 + (state[1] - state[3]) ** 2)
 
 
-def reward(prev_state, next_state, score_delta):
+def reward(prev_state: "np.array", next_state: "np.array", score_delta: int) -> float:
+    """
+    This function returns reward for transition between states.
+
+    Parameters:
+        - prev_state: np.array - state array (of shape (6,))
+        - next_state: np.array - state array (of shape (6,))
+        - score_delta: int - difference of score between `next_state` and `prev_state`
+    """
     if score_delta > 0:
         return 30000
     d_a = distance_to_cherry(prev_state)
@@ -85,25 +131,54 @@ def reward(prev_state, next_state, score_delta):
     return np.mean(np.array([d_a, d_b])) * (d_a - d_b) / 1000
 
 
-def explore_game():
-    driver, _ = get_game()
+def print_training_info(
+    run: int, score: int, exploration_rate: float, top_score
+) -> None:
+    """
+    This function prints training info.
+    """
+    print("-------------------")
+    print(f"RUN: {run}")
+    print(f"SCORE: {score}")
+    print(f"EXPLORATION RATE: {exploration_rate}")
+    print(f"TOP SCORE: {top_score}")
+    print("-------------------")
+
+
+def explore_game(epochs: int = 100) -> None:
+    """
+    This function runs training loop. By default it runs 100 training sessions each consists
+    of 15 cherries to collect.
+
+    Parameters:
+        - epochs: int - number of trainings
+    """
+
+    # Training initialization
+    driver = get_game()
     model = build_model(6, 3)
     top_score = 0
     run = 0
-    for _ in range(100):
+
+    #
+    for _ in range(epochs):
+
+        # Initialize new training session
         run += 1
         driver.refresh()
         sleep(2)
         body = driver.find_element_by_tag_name("body")
-
         current_cherry = 0
         last_score = 0
 
-        for i in range(15):
-            while get_max_cherry(driver) == current_cherry:
+        for i in range(15):  # For 15 cherries
+
+            while (
+                get_highest_possible_score(driver) == current_cherry
+            ):  # While cherry tick (3s)
                 state = get_state(driver)
                 output = model.act(state)
-                send_keys(output, body)
+                apply_action(output, body)
                 new_score = get_score(driver)
                 next_state = get_state(driver)
 
@@ -114,32 +189,33 @@ def explore_game():
 
                 model.remember(state, output, r, next_state, bool(score_delta))
 
-                if score_delta > 0:
-                    while get_max_cherry(driver) == current_cherry:
+                agent_scores_cherry = score_delta > 0
+                if agent_scores_cherry:
+                    while get_highest_possible_score(driver) == current_cherry:
                         # Skip saving data till next cherry tick
                         continue
 
-            current_cherry = get_max_cherry(driver)
+            current_cherry = get_highest_possible_score(driver)
 
         top_score = max([top_score, last_score])
-        print("-------------------")
-        print("RUN: " + str(run))
-        print("SCORE: " + str(last_score))
-        print("EXPLORATION_RATE: " + str(model.exploration_rate))
-        print("TOP SCORE: " + str(top_score))
-        print("-------------------")
+        print_training_info(run, last_score, model.exploration_rate, top_score)
         model.experience_replay()
-    model.model.save_weights('model.ckpt')
+    model.model.save_weights("model.ckpt")
+
 
 def play_game():
+    """
+    This function loads model from `model.ckpt` and runs the game.
+    """
     driver, _ = get_game()
     model = build_model(6, 3)
     model.exploration_rate = 0.0
-    model.model.load_weights('model.ckpt')
+    model.model.load_weights("model.ckpt")
     body = driver.find_element_by_tag_name("body")
     while True:
         state = get_state(driver)
         output = model.act(state)
-        send_keys(output, body)
+        apply_action(output, body)
+
 
 explore_game()
