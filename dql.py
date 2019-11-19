@@ -18,7 +18,7 @@ class DQLSolver:
         output_shape,
         learning_rate=0.001,
         batch_size=100,
-        memory_size=1000000,
+        memory_size=10000,
         EXPLORATION_MAX=1.0,
         EXPLORATION_MIN=0.01,
         EXPLORATION_DECAY=0.995,

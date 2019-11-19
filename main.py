@@ -129,7 +129,7 @@ def reward(prev_state: "np.array", next_state: "np.array", score_delta: int) -> 
     d_a = distance_to_cherry(prev_state)
     d_b = distance_to_cherry(next_state)
     # return np.mean(np.array([d_a, d_b])) * (d_a - d_b) / 1000
-    return abs(next_state[4])/100 + abs(next_state[5])/100
+    return abs(next_state[4]) / 100 + abs(next_state[5]) / 100
 
 
 def print_training_info(
@@ -146,7 +146,7 @@ def print_training_info(
     print("-------------------")
 
 
-def explore_game(epochs: int = 100) -> None:
+def explore_game(epochs: int = 100, forever: bool = False) -> None:
     """
     This function runs training loop. By default it runs 100 training sessions each consists
     of 15 cherries to collect.
@@ -161,8 +161,7 @@ def explore_game(epochs: int = 100) -> None:
     top_score = 0
     run = 0
 
-    #
-    for _ in range(epochs):
+    while True:
 
         # Initialize new training session
         run += 1
@@ -201,6 +200,10 @@ def explore_game(epochs: int = 100) -> None:
         top_score = max([top_score, last_score])
         print_training_info(run, last_score, model.exploration_rate, top_score)
         model.experience_replay()
+
+        if not forever and run == epochs:
+            run = 0
+            break
     model.model.save_weights("model.ckpt")
 
 
