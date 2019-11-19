@@ -16,6 +16,7 @@ class DQLSolver:
         self,
         input_shape,
         output_shape,
+        checkpoint_path,
         learning_rate=0.001,
         batch_size=100,
         memory_size=10000,
@@ -27,6 +28,7 @@ class DQLSolver:
         self.input_shape = input_shape
         self.output_shape = output_shape
         self.batch_size = batch_size
+        self.checkpoint_path = checkpoint_path
 
         self.EXPLORATION_MAX = EXPLORATION_MAX
         self.EXPLORATION_MIN = EXPLORATION_MIN
@@ -41,7 +43,7 @@ class DQLSolver:
         self.model.compile(loss="mse", optimizer=Adam(lr=learning_rate))
 
     def callback(self):
-        checkpoint_path = "training/cp.pkt"
+        checkpoint_path = f"{self.checkpoint_path}/cp.pkt"
         checkpoint_dir = os.path.dirname(checkpoint_path)
         return tf.keras.callbacks.ModelCheckpoint(
             filepath=checkpoint_path, save_weights_only=True

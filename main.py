@@ -13,7 +13,10 @@ from dql import DQLSolver
 
 game_url = "https://webassembly-game.netlify.com/"
 
+CHECKPOINT_PATH = "/content/gdrive/My Drive/game_training"
 ACTIONS = {0: Keys.SPACE, 1: Keys.ARROW_LEFT, 2: Keys.ARROW_RIGHT}
+
+user_is_root = os.geteuid() == 0
 
 
 def build_model(input_size: int, output_size: int) -> object:
@@ -24,7 +27,7 @@ def build_model(input_size: int, output_size: int) -> object:
         - input_size: int - size of input vector
         - output_size: int - size of output vector
     """
-    return DQLSolver(input_size, output_size)
+    return DQLSolver(input_size, output_size, CHECKPOINT_PATH)
 
 
 def apply_action(decision: int, body: object) -> None:
@@ -68,6 +71,8 @@ def get_game() -> "webdriver":
     options = Options()
     if "headless" in os.environ.keys():
         options.add_argument("--headless")
+        if user_is_root:
+            options.add_argument("--no-sandbox")
 
     driver = webdriver.Chrome(executable_path="./chromedriver", options=options)
     driver.get(game_url)
@@ -146,12 +151,13 @@ def print_training_info(
     print("-------------------")
 
 
-def explore_game(model, epochs: int = 100, forever: bool = False) -> None:
+def explore_game(model: "DQLSolver", epochs: int = 100, forever: bool = False) -> None:
     """
     This function runs training loop. By default it runs 100 training sessions each consists
     of 15 cherries to collect.
 
     Parameters:
+        - model: DQLSolver - model for exploring the game
         - epochs: int - number of trainings
     """
 
@@ -206,9 +212,12 @@ def explore_game(model, epochs: int = 100, forever: bool = False) -> None:
     model.model.save_weights("model.ckpt")
 
 
-def play_game(model):
+def play_game(model: "DQLSolver") -> None:
     """
-    This function loads model from `model.ckpt` and runs the game.
+    This function plays the game with given model.
+
+    Parameters:
+        - model: DQLSolver - model for playing the game
     """
     driver = get_game()
     model.exploration_rate = 0.0
@@ -228,8 +237,11 @@ def play_game(model):
 
 
 def get_model_from_google():
+    """
+    Load model from checkpoint.
+    """
     model = build_model(6, 3)
-    model.model.load_weights("/content/gdrive/My Drive/game_training/cp.pkt")
+    model.model.load_weights(f"{CHECKPOINT_PATH}/cp.pkt")
     return model
 
 
