@@ -146,7 +146,7 @@ def print_training_info(
     print("-------------------")
 
 
-def explore_game(epochs: int = 100, forever: bool = False) -> None:
+def explore_game(model, epochs: int = 100, forever: bool = False) -> None:
     """
     This function runs training loop. By default it runs 100 training sessions each consists
     of 15 cherries to collect.
@@ -157,7 +157,6 @@ def explore_game(epochs: int = 100, forever: bool = False) -> None:
 
     # Training initialization
     driver = get_game()
-    model = build_model(6, 3)
     top_score = 0
     run = 0
 
@@ -207,14 +206,12 @@ def explore_game(epochs: int = 100, forever: bool = False) -> None:
     model.model.save_weights("model.ckpt")
 
 
-def play_game():
+def play_game(model):
     """
     This function loads model from `model.ckpt` and runs the game.
     """
     driver = get_game()
-    model = build_model(6, 3)
     model.exploration_rate = 0.0
-    model.model.load_weights("model.ckpt")
     body = driver.find_element_by_tag_name("body")
     last_score = 0
     while True:
@@ -230,4 +227,13 @@ def play_game():
         last_score = new_score
 
 
-explore_game()
+def get_model_from_google():
+    model = build_model(6, 3)
+    model.model.load_weights("/content/gdrive/My Drive/game_training/cp.pkt")
+    return model
+
+
+# model = build_model(6, 3)
+# model.model.load_weights("model.ckpt")
+model = get_model_from_google()
+explore_game(model)
