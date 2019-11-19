@@ -130,11 +130,11 @@ def reward(prev_state: "np.array", next_state: "np.array", score_delta: int) -> 
         - score_delta: int - difference of score between `next_state` and `prev_state`
     """
     if score_delta > 0:
-        return 10
+        return 3000
     d_a = distance_to_cherry(prev_state)
     d_b = distance_to_cherry(next_state)
-    # return np.mean(np.array([d_a, d_b])) * (d_a - d_b) / 1000
-    return abs(next_state[4]) / 100 + abs(next_state[5]) / 100
+    return np.mean(np.array([d_a, d_b])) * (d_a - d_b) / 1000
+    # return abs(next_state[4]) / 100 + abs(next_state[5]) / 100
 
 
 def print_training_info(
@@ -248,4 +248,4 @@ def get_model_from_google():
 # model = build_model(6, 3)
 # model.model.load_weights("model.ckpt")
 model = get_model_from_google()
-explore_game(model)
+explore_game(model, forever=True)
